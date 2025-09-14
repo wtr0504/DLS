@@ -120,7 +120,7 @@ class EWiseDiv(TensorOp):
     def gradient(self, out_grad, node):
         ### BEGIN YOUR SOLUTION
         lhs,rhs = node.inputs
-        return out_grad / rhs , -(lhs / rhs ** 2)
+        return out_grad / rhs , (-1) * out_grad * (lhs / rhs ** 2)
         ### END YOUR SOLUTION
 
 
@@ -323,6 +323,22 @@ class ReLU(TensorOp):
         return out_grad * Tensor(out)
         ### END YOUR SOLUTION
 
+class Split(TensorOp):
+    def __init__(self, sections, axis=0):
+        self.sections = sections
+        self.axis = axis
+
+    def compute(self, a):
+        import numpy as np
+        # 拆成 sections 份
+        return tuple(np.array_split(a, self.sections, axis=self.axis))
+
+    def gradient(self, out_grads, node):
+        # 把梯度拼回去
+        return concat(out_grads, axis=self.axis)
+
+def split(a, sections, axis=0):
+    return Split(sections, axis)(a)
 
 def relu(a):
     return ReLU()(a)
