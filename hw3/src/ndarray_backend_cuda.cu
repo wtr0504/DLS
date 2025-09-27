@@ -522,8 +522,8 @@ __global__ void MatmulKernel(const scalar_t *a,const scalar_t *b,scalar_t *out,s
   constexpr int BN = 32;
   constexpr int BP = 32;
 
-  __shared__ scalar_t matA[BM][BN];
-  __shared__ scalar_t matB[BN][BP];
+  __shared__ scalar_t matA[BM][BN + 2];
+  __shared__ scalar_t matB[BN][BP + 2];
 
   const int tidr = threadIdx.x;
   const int tidc = threadIdx.y;
@@ -531,20 +531,20 @@ __global__ void MatmulKernel(const scalar_t *a,const scalar_t *b,scalar_t *out,s
   const int bidc = blockIdx.y * blockDim.y;
 
   for(int j = 0; j < M;j += BN){
-    if(tidr + bidr < BM && j + tidc < BN){
-      matA[tidr][tidc] = a[(tidr + bidr) * BN + j + tidc];
+    if(tidr + bidr < M && j + tidc < N){
+      matA[tidr][tidc] = a[(tidr + bidr) * N + j + tidc];
     } else {
       matA[tidr][tidc] = 0.0;
     }
 
-    if(tidr + j < BN && tidc + bidc < BP){
-      matB[tidr][tidc] = b[(tidr + j) * BP + tidc + bidc];
+    if(tidr + j < N && tidc + bidc < P){
+      matB[tidr][tidc] = b[(tidr + j) * P + tidc + bidc];
     } else {
       matB[tidr][tidc] = 0.0;
     }
     __syncthreads();
     float res = 0.0;
-    for(int i = 0; i < 32;i++){
+    for(int i = 0; i < BN;i++){
       res += matA[tidr][i] * matB[i][tidc];
     }
     __syncthreads();
